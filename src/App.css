@@ -493,10 +493,11 @@ body {
 }
 
 .app-header h1 span {
-  background: linear-gradient(90deg, #4cc9f0, #4361ee);
+  background: linear-gradient(90deg, #4d9eff, #86c6ff);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  font-weight: 700;
 }
 
 .tagline {
@@ -519,6 +520,7 @@ body {
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.3s ease;
+  z-index: 1001;
 }
 
 .search-box:focus-within {
@@ -587,21 +589,57 @@ body {
   transform: scale(1.1);
 }
 
+/* Error container and suggestions */
+.error-container {
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.city-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.suggestion-item {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  color: white;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.suggestion-item:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Improve error message styling */
 .error-message {
-  background-color: rgba(239, 68, 68, 0.2);
-  border-left: 4px solid var(--error-color);
-  padding: 1rem;
-  border-radius: var(--border-radius);
-  margin-bottom: 1.5rem;
+  background: rgba(255, 77, 77, 0.2);
+  border: 1px solid rgba(255, 77, 77, 0.3);
+  border-radius: 8px;
+  padding: 0.75rem;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.75rem;
 }
 
 .error-message svg {
-  color: var(--error-color);
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
+  color: rgba(255, 77, 77, 0.9);
+  flex-shrink: 0;
 }
 
 .weather-card {
@@ -700,8 +738,17 @@ body {
   margin-top: auto;
   text-align: center;
   font-size: 0.8rem;
-  opacity: 0.7;
+  opacity: 0.9;
   padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-footer p {
+  margin: 0;
+  padding: 0;
 }
 
 .loader {
@@ -839,6 +886,7 @@ body {
   height: 100%;
   z-index: 10;
   transition: width 0.3s ease;
+  z-index: 1000;
 }
 
 /* Keep search input clickable in collapsed state */
@@ -938,4 +986,123 @@ body {
   .dashboard-layout {
     flex-direction: row;
   }
+}
+
+/* Make sure the search area remains accessible in mobile view */
+.search-sidebar.expanded {
+  z-index: 1000;
+}
+
+/* Keep the search input clickable and prevent event propagation */
+.search-box {
+  position: relative;
+  z-index: 1001;
+}
+
+/* Make sure input stays focused in mobile view */
+.search-input:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+/* Prevent sidebar from collapsing during typing */
+.search-input[data-focused="true"] {
+  border: 2px solid #78ccff;
+}
+
+/* Add this to your App.css file for the company branding */
+.company-branding {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+/* Update logo styling to match the new color scheme */
+.company-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+  background-color: #fff;
+  padding: 2px;
+  border: 1px solid rgba(74, 144, 226, 0.5);
+  box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+  transition: all 0.3s ease;
+}
+
+.company-branding:hover .company-logo {
+  transform: rotate(15deg);
+  box-shadow: 0 0 12px rgba(74, 144, 226, 0.5);
+}
+
+/* Updated styling for the Project Shinra branding with blue and silver theme */
+.company-name {
+  position: relative;
+  font-weight: 700;
+  background: linear-gradient(90deg, #255aa4, #4d5152, #285c9c, #4f5358);
+  background-size: 300% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shine 4s ease-in-out infinite;
+  padding: 0 4px;
+  margin: 0 -4px;
+  letter-spacing: 0.5px;
+  filter: drop-shadow(0 0 8px rgba(74, 144, 226, 0.5));
+}
+
+/* Add a more subtle shine animation for professional look */
+@keyframes shine {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Create a subtle hover effect - more subdued for professional look */
+.company-branding p:hover .company-name {
+  animation: pulse 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(74, 144, 226, 0.6));
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Update the underline glow effect */
+.company-name::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(178, 190, 195, 0.7), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.company-branding p:hover .company-name::after {
+  opacity: 1;
+}
+
+/* Make sure the logo still appears in collapsed sidebar on mobile */
+.search-sidebar.collapsed .app-footer {
+  display: none;
 }

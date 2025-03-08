@@ -35,6 +35,8 @@ function App() {
   const [isBackendAvailable, setIsBackendAvailable] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [showFullSidebar, setShowFullSidebar] = useState(true);
+  const [citySuggestions, setCitySuggestions] = useState([]);
+  const [showingSuggestions, setShowingSuggestions] = useState(false);
   
   // Check if backend is available
   useEffect(() => {
@@ -85,6 +87,22 @@ function App() {
         fetchWeather();
       }
     }
+  }, []);
+
+  // Add this near the top of your App component to debug logo loading
+  useEffect(() => {
+    // Check if the logo file exists
+    fetch('/logo.png')
+      .then(response => {
+        if (response.ok) {
+          console.log("Logo file found successfully");
+        } else {
+          console.error("Logo file not found:", response.status);
+        }
+      })
+      .catch(error => {
+        console.error("Error checking logo file:", error);
+      });
   }, []);
 
   // Update search history in localStorage when it changes
@@ -149,7 +167,10 @@ function App() {
     e?.preventDefault();
     if (!city.trim()) return;
     
+    setCitySuggestions([]); // Clear previous suggestions
+    setShowingSuggestions(false);
     setIsLoading(true);
+    
     try {
       const data = await fetchWeatherData(city);
       if (data) {
@@ -162,9 +183,19 @@ function App() {
         throw new Error("No weather data returned");
       }
     } catch (err) {
-      setError("City not found or server error. Please try again.");
       console.error("Error fetching weather:", err);
       setWeather(null);
+      
+      // Generate suggestions for similar city names
+      const suggestions = findSimilarCities(city);
+      
+      if (suggestions.length > 0) {
+        setCitySuggestions(suggestions);
+        setShowingSuggestions(true);
+        setError(`City "${city}" not found. Did you mean:`);
+      } else {
+        setError(`City "${city}" not found. Please check the spelling and try again.`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -331,9 +362,13 @@ function App() {
 
   useEffect(() => {
     if (weather && isMobile) {
-      // Don't collapse if the user is actively using the search input
-      if (!document.activeElement || 
-          !document.activeElement.closest('.search-box')) {
+      // Check if the search input is focused or if focus event happened recently
+      const searchInput = document.querySelector('.search-input');
+      const isFocused = searchInput && 
+                        (document.activeElement === searchInput || 
+                         searchInput.hasAttribute('data-focused'));
+      
+      if (!isFocused) {
         setShowFullSidebar(false);
       }
     }
@@ -343,24 +378,142 @@ function App() {
     setShowFullSidebar(!showFullSidebar);
   };
 
-  // Add this new function to handle sidebar clicks
+  // Replace the handleSidebarClick function with this improved version
   const handleSidebarClick = (e) => {
-    // Only expand when clicking directly on the collapsed sidebar container
-    // not on any of its children that might still be visible
+    // Prevent sidebar collapse when clicking inside the sidebar
+    e.stopPropagation();
+    
+    // Only handle clicks on the collapsed sidebar container itself
     if (isMobile && !showFullSidebar && e.target.classList.contains('search-sidebar')) {
       setShowFullSidebar(true);
     }
   };
 
-  // Add this to prevent the form from submitting and immediately collapsing
+  // Add this new function to handle document clicks for detecting outside clicks
+  useEffect(() => {
+    const handleDocumentClick = (e) => {
+      // Only handle outside clicks when sidebar is expanded
+      if (isMobile && showFullSidebar) {
+        // Check if the click is outside the sidebar
+        const sidebar = document.querySelector('.search-sidebar');
+        const searchInput = document.querySelector('.search-input');
+        
+        // Don't collapse if clicking inside the sidebar or if the search is focused
+        if (sidebar && !sidebar.contains(e.target) && 
+            (!searchInput || !searchInput.hasAttribute('data-focused'))) {
+          setShowFullSidebar(false);
+        }
+      }
+    };
+
+    // Add event listener for clicks outside sidebar
+    document.addEventListener('click', handleDocumentClick);
+    
+    return () => {
+      document.removeEventListener('click', handleDocumentClick);
+    };
+  }, [isMobile, showFullSidebar]);
+
+  // Update the handleSubmit function to keep sidebar open when suggestions appear
   const handleSubmit = (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent any bubbling
+    
     fetchWeather(e);
-    // Wait a moment before collapsing the sidebar on mobile after search
-    // This gives users a chance to see their search is processing
+    
+    // Keep the sidebar open if there will be error messages or suggestions
+    // Otherwise collapse it after a slight delay
     if (isMobile && city.trim()) {
-      setTimeout(() => setShowFullSidebar(false), 300);
+      // If the search is successful, collapse the sidebar
+      // The timing here is important - we need to wait for suggestions to be set
+      setTimeout(() => {
+        if (!showingSuggestions) {
+          setShowFullSidebar(false);
+        }
+      }, 500);
     }
+  };
+
+  // Add this function for finding similar cities using Levenshtein distance algorithm
+  const findSimilarCities = (input) => {
+    // List of popular cities to check against
+    const popularCities = [
+      "London", "New York", "Paris", "Tokyo", "Sydney", "Berlin", "Madrid", "Rome", 
+      "Dubai", "Moscow", "Beijing", "Hong Kong", "Singapore", "Amsterdam", "Toronto",
+      "Johannesburg", "Cape Town", "Durban", "Pretoria", "Cairo", "Lagos", "Nairobi",
+      "Mumbai", "Delhi", "Bangkok", "Istanbul", "Rio de Janeiro", "São Paulo",
+      "Mexico City", "Los Angeles", "Chicago", "San Francisco", "Vancouver", "Montreal"
+    ];
+    
+    // Simple Levenshtein distance implementation
+    const levenshteinDistance = (a, b) => {
+      if (a.length === 0) return b.length;
+      if (b.length === 0) return a.length;
+  
+      const matrix = [];
+  
+      // Increment along the first column of each row
+      for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+      }
+  
+      // Increment each column in the first row
+      for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+      }
+  
+      // Fill in the rest of the matrix
+      for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+          if (b.charAt(i - 1) === a.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1, // substitution
+              matrix[i][j - 1] + 1,     // insertion
+              matrix[i - 1][j] + 1      // deletion
+            );
+          }
+        }
+      }
+  
+      return matrix[b.length][a.length];
+    };
+    
+    // Find cities with similar spellings
+    const inputLower = input.toLowerCase();
+    
+    // Find cities that start with the same letters (for partial matches)
+    const partialMatches = popularCities.filter(city => 
+      city.toLowerCase().startsWith(inputLower)
+    );
+    
+    // Find cities with similar spellings using Levenshtein distance
+    const similarCities = popularCities
+      .filter(city => !partialMatches.includes(city)) // Exclude cities already found as partial matches
+      .map(city => ({
+        name: city,
+        distance: levenshteinDistance(inputLower, city.toLowerCase())
+      }))
+      .filter(item => item.distance <= 3) // Only consider cities with small edit distance
+      .sort((a, b) => a.distance - b.distance) // Sort by similarity
+      .map(item => item.name);
+    
+    // Return a combined list with partial matches first, then fuzzy matches
+    return [...partialMatches, ...similarCities].slice(0, 5); // Limit to 5 suggestions
+  };
+
+  // Add a function to handle selecting a suggestion
+  const handleSuggestionClick = (suggestion) => {
+    setCity(suggestion);
+    setShowingSuggestions(false);
+    fetchWeatherData(suggestion).then(data => {
+      setWeather(data);
+      updateSearchHistory(suggestion);
+    }).catch(err => {
+      console.error("Error fetching suggested city:", err);
+      setError(`Failed to load weather for ${suggestion}. Please try another city.`);
+    });
   };
 
   return (
@@ -393,7 +546,7 @@ function App() {
           onClick={handleSidebarClick}
         >
           <div className="app-header sidebar-header">
-            <h1>Weather<span>Pulse</span></h1>
+            <h1>Nimbus<span>Cast</span></h1>
             <p className="tagline">Real-time weather information at your fingertips</p>
           </div>
           
@@ -404,7 +557,20 @@ function App() {
                 placeholder="Search any city..."
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                onFocus={() => isMobile && setShowFullSidebar(true)}
+                onFocus={() => {
+                  if (isMobile) {
+                    setShowFullSidebar(true);
+                    // This prevents any other effects from collapsing the sidebar
+                    setTimeout(() => {
+                      document.querySelector('.search-input').setAttribute('data-focused', 'true');
+                    }, 10);
+                  }
+                }}
+                onBlur={() => {
+                  if (isMobile) {
+                    document.querySelector('.search-input').removeAttribute('data-focused');
+                  }
+                }}
                 className="search-input"
               />
               <button 
@@ -431,6 +597,19 @@ function App() {
                 )}
               </button>
             </div>
+            {showingSuggestions && citySuggestions.length > 0 && (
+              <div className="suggestions-container">
+                {citySuggestions.map((suggestion, index) => (
+                  <div 
+                    key={index} 
+                    className="suggestion-item" 
+                    onClick={() => handleSuggestionClick(suggestion)}
+                  >
+                    {suggestion}
+                  </div>
+                ))}
+              </div>
+            )}
           </form>
           
           <div className="unit-toggle">
@@ -449,11 +628,27 @@ function App() {
           </div>
           
           {error && (
-            <div className="error-message">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 9V14M12 17.5V18M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <p>{error}</p>
+            <div className="error-container">
+              <div className="error-message">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 9V14M12 17.5V18M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <p>{error}</p>
+              </div>
+              
+              {showingSuggestions && citySuggestions.length > 0 && (
+                <div className="city-suggestions">
+                  {citySuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      className="suggestion-item"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
           
@@ -478,8 +673,20 @@ function App() {
           )}
           
           <footer className="app-footer">
+            <div className="company-branding">
+              <img 
+                src="/logo.png" 
+                alt="Project Shinra logo" 
+                className="company-logo" 
+                onError={(e) => {
+                  console.error("Logo failed to load");
+                  e.target.style.display = 'none';
+                }}
+              />
+              <p>A <span className="company-name">Project Shinra</span> Creation</p>
+            </div>
             <p>Powered by OpenWeatherMap API</p>
-            <p className="copyright">© {new Date().getFullYear()} WeatherPulse</p>
+            <p className="copyright">© {new Date().getFullYear()} NimbusCast</p>
           </footer>
         </div>
         
@@ -623,7 +830,7 @@ function App() {
                   <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <h2>Welcome to WeatherPulse</h2>
+              <h2>Welcome to NimbusCast</h2>
               <p>Search for a city to get the latest weather information</p>
               <div className="welcome-features">
                 <div className="feature">

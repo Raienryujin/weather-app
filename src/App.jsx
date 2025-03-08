@@ -374,8 +374,14 @@ function App() {
     }
   }, [weather, isMobile]);
 
+  // Replace the toggleSidebar function with this improved version
   const toggleSidebar = () => {
-    setShowFullSidebar(!showFullSidebar);
+    // Toggle sidebar state
+    setShowFullSidebar(prev => {
+      const newState = !prev;
+      console.log("Toggling sidebar:", newState ? "expanded" : "collapsed");
+      return newState;
+    });
   };
 
   // Replace the handleSidebarClick function with this improved version
@@ -421,26 +427,48 @@ function App() {
     };
   }, [isMobile, showFullSidebar]);
 
-  // Update the handleSubmit function to keep sidebar open when suggestions appear
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Don't collapse the sidebar immediately after submitting
-    const shouldKeepOpen = city.trim().length > 0;
-    
-    fetchWeather(e);
-    
-    // Only collapse after we know there are no suggestions to show
-    if (isMobile && !showingSuggestions) {
-      // Add a delay to allow the API response to complete
-      setTimeout(() => {
-        if (!showingSuggestions) {
-          // Only collapse if we didn't get any suggestions
-          setShowFullSidebar(false);
-        }
-      }, 500);
-    }
-  };
+  // Replace the handleSubmit function with this improved version
+const handleSubmit = (e) => {
+  e.preventDefault();
+  
+  if (!city.trim()) return;
+  
+  setCitySuggestions([]); // Clear previous suggestions
+  setShowingSuggestions(false);
+  setIsLoading(true);
+  
+  // Always fetch weather data for the entered city
+  fetchWeatherData(city)
+    .then(data => {
+      setWeather(data);
+      setError("");
+      updateSearchHistory(city);
+      
+      // Only collapse sidebar after successful search if user initiates collapse
+      // Don't auto-collapse anymore - let user control this with the toggle
+      console.log("Search successful, keeping sidebar state as is");
+    })
+    .catch(err => {
+      console.error("Error fetching weather:", err);
+      setWeather(null);
+      
+      // Generate suggestions for similar city names
+      const suggestions = findSimilarCities(city);
+      
+      if (suggestions.length > 0) {
+        setCitySuggestions(suggestions);
+        setShowingSuggestions(true);
+        setError(`City "${city}" not found. Did you mean:`);
+        // Keep sidebar expanded when showing suggestions
+        setShowFullSidebar(true);
+      } else {
+        setError(`City "${city}" not found. Please check the spelling and try again.`);
+      }
+    })
+    .finally(() => {
+      setIsLoading(false);
+    });
+};
 
   // Add this function for finding similar cities using Levenshtein distance algorithm
   const findSimilarCities = (input) => {
@@ -532,7 +560,7 @@ function App() {
         </div>
       )}
       <div className={`dashboard-layout ${isMobile ? 'mobile' : ''}`}>
-        {isMobile && weather && (
+        {isMobile && ( // Remove the weather condition to make toggle always visible
           <button 
             className="sidebar-toggle" 
             onClick={toggleSidebar}
@@ -564,24 +592,37 @@ function App() {
                 type="text"
                 placeholder="Search any city..."
                 value={city}
-                onChange={(e) => setCity(e.target.value)}
+                onChange={(e) => {
+                  setCity(e.target.value);
+                  // Ensure sidebar stays open while typing
+                  if (isMobile) {
+                    setShowFullSidebar(true);
+                  }
+                }}
                 onFocus={() => {
                   if (isMobile) {
                     setShowFullSidebar(true);
                     // Set a flag to prevent sidebar from collapsing while focused
-                    document.querySelector('.search-input').setAttribute('data-focused', 'true');
+                    const searchInput = document.querySelector('.search-input');
+                    if (searchInput) {
+                      searchInput.setAttribute('data-focused', 'true');
+                      console.log("Input focused, sidebar expanded");
+                    }
                   }
                 }}
                 onBlur={() => {
-                  // Don't immediately remove the focused attribute
-                  // Instead, set a timeout to allow click events to process first
+                  // Use a longer timeout to ensure clicks on suggestions register first
                   if (isMobile) {
                     setTimeout(() => {
                       const searchInput = document.querySelector('.search-input');
                       if (searchInput && document.activeElement !== searchInput) {
                         searchInput.removeAttribute('data-focused');
+                        console.log("Input blur event, data-focused removed");
+                        
+                        // Don't auto-collapse here - let the user manually collapse when ready
+                        // This is key to keeping the search area persistent while interacting
                       }
-                    }, 200);
+                    }, 300);
                   }
                 }}
                 className="search-input"

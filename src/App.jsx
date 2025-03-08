@@ -316,8 +316,9 @@ function App() {
       const isMobileView = window.innerWidth < 768;
       setIsMobile(isMobileView);
       
-      // If on mobile and we have weather data, collapse sidebar
-      if (isMobileView && weather) {
+      // Only collapse sidebar on initial load if we have weather data
+      // Don't collapse when resizing the window
+      if (isMobileView && weather && !document.activeElement.classList.contains('search-box')) {
         setShowFullSidebar(false);
       }
     };
@@ -330,12 +331,36 @@ function App() {
 
   useEffect(() => {
     if (weather && isMobile) {
-      setShowFullSidebar(false);
+      // Don't collapse if the user is actively using the search input
+      if (!document.activeElement || 
+          !document.activeElement.closest('.search-box')) {
+        setShowFullSidebar(false);
+      }
     }
   }, [weather, isMobile]);
 
   const toggleSidebar = () => {
     setShowFullSidebar(!showFullSidebar);
+  };
+
+  // Add this new function to handle sidebar clicks
+  const handleSidebarClick = (e) => {
+    // Only expand when clicking directly on the collapsed sidebar container
+    // not on any of its children that might still be visible
+    if (isMobile && !showFullSidebar && e.target.classList.contains('search-sidebar')) {
+      setShowFullSidebar(true);
+    }
+  };
+
+  // Add this to prevent the form from submitting and immediately collapsing
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    fetchWeather(e);
+    // Wait a moment before collapsing the sidebar on mobile after search
+    // This gives users a chance to see their search is processing
+    if (isMobile && city.trim()) {
+      setTimeout(() => setShowFullSidebar(false), 300);
+    }
   };
 
   return (
@@ -363,19 +388,24 @@ function App() {
             )}
           </button>
         )}
-        <div className={`search-sidebar ${isMobile && weather ? (showFullSidebar ? 'expanded' : 'collapsed') : ''}`}>
+        <div 
+          className={`search-sidebar ${isMobile && weather ? (showFullSidebar ? 'expanded' : 'collapsed') : ''}`}
+          onClick={handleSidebarClick}
+        >
           <div className="app-header sidebar-header">
             <h1>Weather<span>Pulse</span></h1>
             <p className="tagline">Real-time weather information at your fingertips</p>
           </div>
           
-          <form className="search-container" onSubmit={fetchWeather}>
+          <form className="search-container" onSubmit={handleSubmit}>
             <div className="search-box">
               <input
                 type="text"
                 placeholder="Search any city..."
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
+                onFocus={() => isMobile && setShowFullSidebar(true)}
+                className="search-input"
               />
               <button 
                 type="submit"

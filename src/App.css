@@ -828,6 +828,65 @@ body {
   min-width: 60px;
   overflow: hidden;
   padding: 15px 0;
+  transition: width 0.3s ease;
+}
+
+.search-sidebar.expanded {
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  z-index: 10;
+  transition: width 0.3s ease;
+}
+
+/* Keep search input clickable in collapsed state */
+.search-sidebar.collapsed .search-box {
+  opacity: 0; 
+  pointer-events: none;
+}
+
+/* Make sure the toggle button is always clickable */
+.sidebar-toggle {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  color: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+/* Show "Search" indicator when collapsed */
+.search-sidebar.collapsed::after {
+  content: "Search";
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  letter-spacing: 1px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(180deg);
+  pointer-events: none;
+}
+
+/* Make collapsed sidebar also clickable to expand */
+.search-sidebar.collapsed {
+  cursor: pointer;
 }
 
 .search-sidebar.collapsed .app-header,

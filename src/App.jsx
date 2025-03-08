@@ -3,7 +3,9 @@ import axios from "axios";
 import "./App.css";
 
 // API Base URL - can be changed based on environment
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// Make sure this value is correctly set in your .env file
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://weather-app-backend-ltgm.onrender.com";
+console.log("Using API URL:", API_BASE_URL); // Debug log for API URL
 
 // Fallback data in case the API is not available during development
 const FALLBACK_WEATHER = {
@@ -37,10 +39,12 @@ function App() {
   useEffect(() => {
     const checkBackendStatus = async () => {
       try {
-        await axios.get(`${API_BASE_URL}/health`, { timeout: 3000 });
+        console.log("Checking backend health at:", `${API_BASE_URL}/health`);
+        await axios.get(`${API_BASE_URL}/health`, { timeout: 5000 });
         setIsBackendAvailable(true);
+        console.log("Backend is available");
       } catch (err) {
-        console.warn("Backend server not available, using fallback data");
+        console.warn("Backend server not available, using fallback data:", err);
         setIsBackendAvailable(false);
       }
     };
@@ -54,30 +58,31 @@ function App() {
     const hours = new Date().getHours();
     setTimeOfDay(hours >= 6 && hours < 18 ? "day" : "night");
     
-    // Try to get user location if they allow
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        fetchWeatherByCoords(position.coords.latitude, position.coords.longitude);
-      }, (error) => {
-        console.log("Geolocation error:", error);
-        // Fallback to London if geolocation fails
-        if (!weather) {
-          setCity("London");
-          fetchWeather();
-        }
-      });
-    } else {
-      // Fallback to London if geolocation not supported
-      if (!weather) {
-        setCity("London");
-        fetchWeather();
-      }
-    }
-    
     // Load search history from localStorage
     const history = localStorage.getItem("weatherSearchHistory");
     if (history) {
       setSearchHistory(JSON.parse(history));
+    }
+    
+    // Try to get user location if they allow
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        console.log("Got user location:", position.coords);
+        fetchWeatherByCoords(position.coords.latitude, position.coords.longitude);
+      }, (error) => {
+        console.log("Geolocation error:", error);
+        // Fallback to a default city if geolocation fails
+        if (!weather) {
+          setCity("Lenasia"); // Using Lenasia as default based on your example
+          fetchWeather();
+        }
+      });
+    } else {
+      // Fallback to a default city if geolocation not supported
+      if (!weather) {
+        setCity("Lenasia");
+        fetchWeather();
+      }
     }
   }, []);
 
@@ -110,7 +115,9 @@ function App() {
     }
 
     try {
+      console.log(`Fetching weather data for ${cityName} from ${API_BASE_URL}/weather/${cityName}`);
       const response = await axios.get(`${API_BASE_URL}/weather/${cityName}`);
+      console.log("Weather API response:", response.data);
       return response.data;
     } catch (err) {
       console.error("Error fetching weather data:", err);
@@ -122,8 +129,9 @@ function App() {
     setIsLoading(true);
     try {
       // In a real app, you'd have a coordinates endpoint
-      // For now we'll fallback to London
-      const data = await fetchWeatherData("London");
+      // For now we'll fallback to a default city since the API doesn't support coords
+      console.log("Fetching weather by coords", lat, lon);
+      const data = await fetchWeatherData("Lenasia"); // Using Lenasia as default
       setWeather(data);
       setCity(data.city);
       setError("");

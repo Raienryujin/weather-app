@@ -394,19 +394,26 @@ function App() {
     const handleDocumentClick = (e) => {
       // Only handle outside clicks when sidebar is expanded
       if (isMobile && showFullSidebar) {
-        // Check if the click is outside the sidebar
         const sidebar = document.querySelector('.search-sidebar');
         const searchInput = document.querySelector('.search-input');
+        const isFocused = searchInput && 
+                         (searchInput.hasAttribute('data-focused') || 
+                          document.activeElement === searchInput);
         
-        // Don't collapse if clicking inside the sidebar or if the search is focused
-        if (sidebar && !sidebar.contains(e.target) && 
-            (!searchInput || !searchInput.hasAttribute('data-focused'))) {
+        // Don't collapse if:
+        // 1. Clicking inside the sidebar
+        // 2. The search input is focused
+        // 3. Clicking on suggestions or history items
+        if (sidebar && 
+            !sidebar.contains(e.target) && 
+            !isFocused && 
+            !e.target.closest('.suggestion-item') &&
+            !e.target.closest('.history-item')) {
           setShowFullSidebar(false);
         }
       }
     };
 
-    // Add event listener for clicks outside sidebar
     document.addEventListener('click', handleDocumentClick);
     
     return () => {
@@ -417,17 +424,18 @@ function App() {
   // Update the handleSubmit function to keep sidebar open when suggestions appear
   const handleSubmit = (e) => {
     e.preventDefault();
-    e.stopPropagation(); // Prevent any bubbling
+    
+    // Don't collapse the sidebar immediately after submitting
+    const shouldKeepOpen = city.trim().length > 0;
     
     fetchWeather(e);
     
-    // Keep the sidebar open if there will be error messages or suggestions
-    // Otherwise collapse it after a slight delay
-    if (isMobile && city.trim()) {
-      // If the search is successful, collapse the sidebar
-      // The timing here is important - we need to wait for suggestions to be set
+    // Only collapse after we know there are no suggestions to show
+    if (isMobile && !showingSuggestions) {
+      // Add a delay to allow the API response to complete
       setTimeout(() => {
         if (!showingSuggestions) {
+          // Only collapse if we didn't get any suggestions
           setShowFullSidebar(false);
         }
       }, 500);
@@ -560,15 +568,20 @@ function App() {
                 onFocus={() => {
                   if (isMobile) {
                     setShowFullSidebar(true);
-                    // This prevents any other effects from collapsing the sidebar
-                    setTimeout(() => {
-                      document.querySelector('.search-input').setAttribute('data-focused', 'true');
-                    }, 10);
+                    // Set a flag to prevent sidebar from collapsing while focused
+                    document.querySelector('.search-input').setAttribute('data-focused', 'true');
                   }
                 }}
                 onBlur={() => {
+                  // Don't immediately remove the focused attribute
+                  // Instead, set a timeout to allow click events to process first
                   if (isMobile) {
-                    document.querySelector('.search-input').removeAttribute('data-focused');
+                    setTimeout(() => {
+                      const searchInput = document.querySelector('.search-input');
+                      if (searchInput && document.activeElement !== searchInput) {
+                        searchInput.removeAttribute('data-focused');
+                      }
+                    }, 200);
                   }
                 }}
                 className="search-input"

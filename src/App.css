@@ -152,6 +152,207 @@ body {
   backdrop-filter: blur(5px);
 }
 
+/* Backend Unavailable Notice */
+.backend-unavailable-notice {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(251, 189, 35, 0.9);
+  color: #121212;
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.85rem;
+  z-index: 1000;
+  font-weight: 500;
+}
+
+/* Unit toggle */
+.unit-toggle {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.unit-button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: 16px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.unit-button.active {
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Sidebar section title */
+.sidebar-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  text-align: left;
+  opacity: 0.8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.5rem;
+}
+
+/* Recent searches */
+.recent-searches {
+  margin-top: 1.5rem;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.history-item {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: inherit;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.history-item:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.history-item svg {
+  width: 16px;
+  height: 16px;
+  opacity: 0.7;
+}
+
+/* Weather date */
+.weather-date {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  margin-bottom: 0.5rem;
+}
+
+/* Copyright */
+.copyright {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+}
+
+/* Forecast section */
+.forecast-section {
+  margin-top: 1rem;
+}
+
+.forecast-container {
+  width: 100%;
+}
+
+.forecast-cards {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+}
+
+.forecast-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  text-align: center;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.forecast-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.forecast-day {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.forecast-icon {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto;
+}
+
+.forecast-temp {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+
+.forecast-desc {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  text-transform: capitalize;
+}
+
+.loading-forecast {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+.no-forecast {
+  text-align: center;
+  padding: 2rem;
+  opacity: 0.7;
+}
+
+/* Welcome features */
+.welcome-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-top: 2.5rem;
+}
+
+.feature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.feature svg {
+  width: 40px;
+  height: 40px;
+  opacity: 0.7;
+}
+
+.feature span {
+  font-size: 1rem;
+  opacity: 0.8;
+  font-weight: 500;
+}
+
 /* Main weather card styling */
 .main-weather-card {
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -535,6 +736,25 @@ body {
   .dashboard-main {
     height: auto;
   }
+  
+  .forecast-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .welcome-features {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 650px) {
+  .forecast-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .welcome-features {
+    grid-template-columns: repeat(1, 1fr);
+    gap: 1.5rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -565,5 +785,10 @@ body {
 
   .weather-details {
     gap: 1rem;
+    grid-template-columns: 1fr;
+  }
+  
+  .forecast-cards {
+    grid-template-columns: 1fr;
   }
 }

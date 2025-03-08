@@ -2,6 +2,24 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import "./App.css";
 
+// API Base URL - can be changed based on environment
+const API_BASE_URL = "https://weather-app-backend-ltgm.onrender.com";
+
+// Fallback data in case the API is not available during development
+const FALLBACK_WEATHER = {
+  city: "London",
+  temp: 15.5,
+  description: "scattered clouds",
+  icon: "03d",
+  humidity: 76,
+  wind: 4.1,
+  pressure: 1012,
+  country: "GB",
+  feels_like: 14.8,
+  sunrise: 1626502800,
+  sunset: 1626559800
+};
+
 function App() {
   const [city, setCity] = useState("");
   const [weather, setWeather] = useState(null);
@@ -13,6 +31,22 @@ function App() {
   const [forecast, setForecast] = useState(null);
   const [loadingForecast, setLoadingForecast] = useState(false);
   const [unit, setUnit] = useState("metric"); // metric or imperial
+  const [isBackendAvailable, setIsBackendAvailable] = useState(true);
+  
+  // Check if backend is available
+  useEffect(() => {
+    const checkBackendStatus = async () => {
+      try {
+        await axios.get(`${API_BASE_URL}/health`, { timeout: 3000 });
+        setIsBackendAvailable(true);
+      } catch (err) {
+        console.warn("Backend server not available, using fallback data");
+        setIsBackendAvailable(false);
+      }
+    };
+    
+    checkBackendStatus();
+  }, []);
   
   // Get user's current location on first load
   useEffect(() => {
@@ -26,7 +60,18 @@ function App() {
         fetchWeatherByCoords(position.coords.latitude, position.coords.longitude);
       }, (error) => {
         console.log("Geolocation error:", error);
+        // Fallback to London if geolocation fails
+        if (!weather) {
+          setCity("London");
+          fetchWeather();
+        }
       });
+    } else {
+      // Fallback to London if geolocation not supported
+      if (!weather) {
+        setCity("London");
+        fetchWeather();
+      }
     }
     
     // Load search history from localStorage
@@ -54,17 +99,37 @@ function App() {
     }
   }, [weather]);
 
+  const fetchWeatherData = async (cityName) => {
+    // If backend is not available, use fallback data
+    if (!isBackendAvailable) {
+      console.log("Using fallback data for", cityName);
+      return { 
+        ...FALLBACK_WEATHER, 
+        city: cityName || FALLBACK_WEATHER.city 
+      };
+    }
+
+    try {
+      const response = await axios.get(`${API_BASE_URL}/weather/${cityName}`);
+      return response.data;
+    } catch (err) {
+      console.error("Error fetching weather data:", err);
+      throw err;
+    }
+  };
+
   const fetchWeatherByCoords = async (lat, lon) => {
     setIsLoading(true);
     try {
-      // Simulate fetching by coordinates - in a real app you would have this endpoint
-      const res = await axios.get(`http://localhost:8000/weather/London`);
-      setWeather(res.data);
-      setCity(res.data.city);
+      // In a real app, you'd have a coordinates endpoint
+      // For now we'll fallback to London
+      const data = await fetchWeatherData("London");
+      setWeather(data);
+      setCity(data.city);
       setError("");
       
       // Add to search history
-      updateSearchHistory(res.data.city);
+      updateSearchHistory(data.city);
     } catch (err) {
       setError("Error getting weather for your location. Please search manually.");
       console.error("Error fetching weather by coords:", err);
@@ -78,33 +143,52 @@ function App() {
     
     setIsLoading(true);
     try {
-      const res = await axios.get(`http://localhost:8000/weather/${city}`);
-      setWeather(res.data);
-      setError("");
-      
-      // Add to search history
-      updateSearchHistory(city);
+      const data = await fetchWeatherData(city);
+      if (data) {
+        setWeather(data);
+        setError("");
+        
+        // Add to search history
+        updateSearchHistory(city);
+      } else {
+        throw new Error("No weather data returned");
+      }
     } catch (err) {
       setError("City not found or server error. Please try again.");
+      console.error("Error fetching weather:", err);
       setWeather(null);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
   
   const fetchForecast = async (cityName) => {
     setLoadingForecast(true);
     try {
       // In a real app you would have a forecast endpoint
-      // This is a simulation using the same endpoint multiple times
+      // This is a simulation using the same endpoint or fallback data
       const days = [];
       for (let i = 0; i < 5; i++) {
         try {
-          const res = await axios.get(`http://localhost:8000/weather/${cityName}`);
-          // Modify data to simulate different days
+          let dayData;
+          if (!isBackendAvailable) {
+            // Use fallback data with slight variations
+            dayData = { 
+              ...FALLBACK_WEATHER,
+              city: cityName,
+              temp: FALLBACK_WEATHER.temp + Math.floor(Math.random() * 5) - 2,
+              humidity: FALLBACK_WEATHER.humidity + Math.floor(Math.random() * 10) - 5,
+              wind: FALLBACK_WEATHER.wind + (Math.random() * 2 - 1).toFixed(1),
+            };
+          } else {
+            const res = await axios.get(`${API_BASE_URL}/weather/${cityName}`);
+            dayData = res.data;
+          }
+          
           days.push({
-            ...res.data,
+            ...dayData,
             date: new Date(Date.now() + 86400000 * (i + 1)),
-            temp: res.data.temp + Math.floor(Math.random() * 5) - 2
+            temp: dayData.temp + Math.floor(Math.random() * 5) - 2
           });
         } catch (err) {
           console.error(`Error in forecast day ${i}:`, err);
@@ -156,8 +240,20 @@ function App() {
     
     for (const city of nearby) {
       try {
-        const res = await axios.get(`http://localhost:8000/weather/${city}`);
-        nearbyData.push(res.data);
+        if (!isBackendAvailable) {
+          // Use fallback data with variations for development
+          nearbyData.push({
+            ...FALLBACK_WEATHER,
+            city: city,
+            temp: FALLBACK_WEATHER.temp + Math.floor(Math.random() * 8) - 4,
+            humidity: FALLBACK_WEATHER.humidity + Math.floor(Math.random() * 15) - 7,
+            description: ["clear sky", "few clouds", "scattered clouds", "overcast clouds", "light rain"][Math.floor(Math.random() * 5)],
+            icon: ["01d", "02d", "03d", "04d", "10d"][Math.floor(Math.random() * 5)]
+          });
+        } else {
+          const res = await axios.get(`${API_BASE_URL}/weather/${city}`);
+          nearbyData.push(res.data);
+        }
       } catch (err) {
         console.error(`Error fetching data for ${city}:`, err);
       }
@@ -211,6 +307,11 @@ function App() {
 
   return (
     <div className={`app-container ${timeOfDay} ${weather ? getWeatherBackground() : ""}`}>
+      {!isBackendAvailable && (
+        <div className="backend-unavailable-notice">
+          <p>⚠️ Development mode: Backend server not detected. Using sample data.</p>
+        </div>
+      )}
       <div className="dashboard-layout">
         {/* Left sidebar with search */}
         <div className="search-sidebar">
@@ -362,7 +463,7 @@ function App() {
                     </svg>
                     <div>
                       <p className="detail-label">Pressure</p>
-                      <p className="detail-value">1012 hPa</p>
+                      <p className="detail-value">{weather.pressure || 1012} hPa</p>
                     </div>
                   </div>
                   <div className="detail-item">
@@ -370,8 +471,8 @@ function App() {
                       <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                     <div>
-                      <p className="detail-label">UV Index</p>
-                      <p className="detail-value">Moderate</p>
+                      <p className="detail-label">Feels Like</p>
+                      <p className="detail-value">{Math.round(convertTemp(weather.feels_like || weather.temp))}°</p>
                     </div>
                   </div>
                 </div>

@@ -792,3 +792,91 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Mobile layout styles */
+.dashboard-layout.mobile {
+  position: relative;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  color: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Mobile sidebar states */
+.search-sidebar.collapsed {
+  width: 60px;
+  min-width: 60px;
+  overflow: hidden;
+  padding: 15px 0;
+}
+
+.search-sidebar.collapsed .app-header,
+.search-sidebar.collapsed .search-container,
+.search-sidebar.collapsed .unit-toggle,
+.search-sidebar.collapsed .recent-searches,
+.search-sidebar.collapsed .app-footer {
+  display: none;
+}
+
+.search-sidebar.collapsed::after {
+  content: "Search";
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  letter-spacing: 1px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(180deg);
+  pointer-events: none;
+}
+
+.search-sidebar.expanded {
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  z-index: 10;
+}
+
+.dashboard-main.reduced {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  .search-sidebar {
+    transition: width 0.3s ease;
+  }
+  
+  .dashboard-main {
+    transition: opacity 0.3s ease;
+  }
+  
+  .dashboard-layout {
+    flex-direction: row;
+  }
+}

@@ -3,7 +3,6 @@ import axios from "axios";
 import "./App.css";
 
 // API Base URL - can be changed based on environment
-// Make sure this value is correctly set in your .env file
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://weather-app-backend-ltgm.onrender.com";
 console.log("Using API URL:", API_BASE_URL); // Debug log for API URL
 
@@ -34,6 +33,8 @@ function App() {
   const [loadingForecast, setLoadingForecast] = useState(false);
   const [unit, setUnit] = useState("metric"); // metric or imperial
   const [isBackendAvailable, setIsBackendAvailable] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showFullSidebar, setShowFullSidebar] = useState(true);
   
   // Check if backend is available
   useEffect(() => {
@@ -73,14 +74,14 @@ function App() {
         console.log("Geolocation error:", error);
         // Fallback to a default city if geolocation fails
         if (!weather) {
-          setCity("Lenasia"); // Using Lenasia as default based on your example
+          setCity("Cape Town"); // Using Cape Town as default based on your example
           fetchWeather();
         }
       });
     } else {
       // Fallback to a default city if geolocation not supported
       if (!weather) {
-        setCity("Lenasia");
+        setCity("Cape Town");
         fetchWeather();
       }
     }
@@ -128,10 +129,9 @@ function App() {
   const fetchWeatherByCoords = async (lat, lon) => {
     setIsLoading(true);
     try {
-      // In a real app, you'd have a coordinates endpoint
       // For now we'll fallback to a default city since the API doesn't support coords
       console.log("Fetching weather by coords", lat, lon);
-      const data = await fetchWeatherData("Lenasia"); // Using Lenasia as default
+      const data = await fetchWeatherData("Cape Town"); // Using Cape Town as default
       setWeather(data);
       setCity(data.city);
       setError("");
@@ -173,8 +173,6 @@ function App() {
   const fetchForecast = async (cityName) => {
     setLoadingForecast(true);
     try {
-      // In a real app you would have a forecast endpoint
-      // This is a simulation using the same endpoint or fallback data
       const days = [];
       for (let i = 0; i < 5; i++) {
         try {
@@ -221,7 +219,6 @@ function App() {
   const fetchNearbyCities = async (cityName) => {
     setNeighborCities([]);
     
-    // Use predefined city groups with more realistic nearby cities
     const cityGroups = {
       "London": ["Manchester", "Birmingham", "Liverpool", "Edinburgh"],
       "New York": ["Boston", "Philadelphia", "Washington DC", "Baltimore"],
@@ -235,6 +232,7 @@ function App() {
       "Toronto": ["Montreal", "Ottawa", "Hamilton", "Mississauga"],
       "Madrid": ["Barcelona", "Valencia", "Seville", "Zaragoza"],
       "Rome": ["Milan", "Naples", "Turin", "Florence"],
+      "Johannesburg": ["Pretoria", "Durban", "Cape Town", "Bloemfontein"],
       "Dubai": ["Abu Dhabi", "Sharjah", "Doha", "Manama"],
       // Default cities if none match
       "default": ["London", "New York", "Tokyo", "Paris", "Berlin"]
@@ -313,6 +311,33 @@ function App() {
     });
   };
 
+  useEffect(() => {
+    const checkIfMobile = () => {
+      const isMobileView = window.innerWidth < 768;
+      setIsMobile(isMobileView);
+      
+      // If on mobile and we have weather data, collapse sidebar
+      if (isMobileView && weather) {
+        setShowFullSidebar(false);
+      }
+    };
+    
+    window.addEventListener('resize', checkIfMobile);
+    checkIfMobile();
+    
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, [weather]);
+
+  useEffect(() => {
+    if (weather && isMobile) {
+      setShowFullSidebar(false);
+    }
+  }, [weather, isMobile]);
+
+  const toggleSidebar = () => {
+    setShowFullSidebar(!showFullSidebar);
+  };
+
   return (
     <div className={`app-container ${timeOfDay} ${weather ? getWeatherBackground() : ""}`}>
       {!isBackendAvailable && (
@@ -320,9 +345,25 @@ function App() {
           <p>⚠️ Development mode: Backend server not detected. Using sample data.</p>
         </div>
       )}
-      <div className="dashboard-layout">
-        {/* Left sidebar with search */}
-        <div className="search-sidebar">
+      <div className={`dashboard-layout ${isMobile ? 'mobile' : ''}`}>
+        {isMobile && weather && (
+          <button 
+            className="sidebar-toggle" 
+            onClick={toggleSidebar}
+            aria-label={showFullSidebar ? "Collapse search" : "Expand search"}
+          >
+            {showFullSidebar ? (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19 12L5 12M5 12L12 19M5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ) : (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 15L21 21M10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10C17 13.866 13.866 17 10 17Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </button>
+        )}
+        <div className={`search-sidebar ${isMobile && weather ? (showFullSidebar ? 'expanded' : 'collapsed') : ''}`}>
           <div className="app-header sidebar-header">
             <h1>Weather<span>Pulse</span></h1>
             <p className="tagline">Real-time weather information at your fingertips</p>
@@ -362,7 +403,6 @@ function App() {
             </div>
           </form>
           
-          {/* Unit toggle */}
           <div className="unit-toggle">
             <button 
               className={`unit-button ${unit === "metric" ? "active" : ""}`} 
@@ -387,7 +427,6 @@ function App() {
             </div>
           )}
           
-          {/* Recent searches */}
           {searchHistory.length > 0 && (
             <div className="recent-searches">
               <h3 className="sidebar-section-title">Recent Searches</h3>
@@ -414,8 +453,7 @@ function App() {
           </footer>
         </div>
         
-        {/* Main content area */}
-        <div className="dashboard-main">
+        <div className={`dashboard-main ${isMobile && showFullSidebar && weather ? 'reduced' : ''}`}>
           {weather ? (
             <>
               <div className="weather-card main-weather-card">
@@ -486,7 +524,6 @@ function App() {
                 </div>
               </div>
               
-              {/* Forecast section */}
               <div className="forecast-section">
                 <h3 className="section-title">5-Day Forecast</h3>
                 

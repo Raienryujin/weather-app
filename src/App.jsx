@@ -3,7 +3,7 @@ import axios from "axios";
 import "./App.css";
 
 // API Base URL - can be changed based on environment
-const API_BASE_URL = "https://weather-app-backend-ltgm.onrender.com";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Fallback data in case the API is not available during development
 const FALLBACK_WEATHER = {
